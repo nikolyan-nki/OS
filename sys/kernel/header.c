@@ -3,6 +3,10 @@
 * License: GPL version 2 or higher http://www.gnu.org/licenses/gpl.html
 */
 #include "keyboard_map.h"
+unsigned int bufferIndex = 0;
+char *EMPTY_STRING = "Yor request is not defined"; 
+char *REQUEST = "Write your request"; 
+#define MAX_BUFFER_SIZE 256
 
 /* there are 25 lines each of 80 columns; each element takes 2 bytes */
 #define LINES 25
@@ -17,6 +21,7 @@
 #define KERNEL_CODE_SEGMENT_OFFSET 0x08
 
 #define ENTER_KEY_CODE 0x1C
+#define BACKSPACE_KEY_CODE 0xE
 
 extern unsigned char keyboard_map[128];
 extern void keyboard_handler(void);
@@ -114,6 +119,15 @@ void kprint_newline(void)
 	current_loc = current_loc + (line_size - current_loc % (line_size));
 }
 
+void kprint_back(void)
+{
+	unsigned int line_size = BYTES_FOR_EACH_ELEMENT * COLUMNS_IN_LINE;
+	
+	vidptr[current_loc--] = ' ';
+	vidptr[current_loc--] = 0x07;
+	
+}
+
 void clear_screen(void)
 {
 	unsigned int i = 0;
@@ -123,10 +137,65 @@ void clear_screen(void)
 	}
 }
 
+
+void printString(char *REQUEST){
+	unsigned int i = 0;
+	while (REQUEST[i] != '\0') {
+		vidptr[current_loc++] = REQUEST[i++];
+		vidptr[current_loc++] = 0x07;
+	}
+}
+
+void ERROR(char *EMPTY_STRING){
+	unsigned int i = 0;
+	while (EMPTY_STRING[i] != '\0') {
+		vidptr[current_loc++] = EMPTY_STRING[i++];
+		vidptr[current_loc++] = 0x07;
+	}
+}
+
+void check_write(void)
+{
+	char inputBuffer[MAX_BUFFER_SIZE];
+	unsigned char status;
+	char keycode;
+	
+	/* write EOI */
+	
+	
+	/* Lowest bit of status will be set if buffer is not empty */
+
+	/* Lowest bit of status will be set if buffer is not empty */
+
+		// keycode = read_port(KEYBOARD_DATA_PORT);
+		// if (keycode != 0 && keycode != ENTER_KEY_CODE && keycode != BACKSPACE_KEY_CODE) {
+		// 		vidptr[current_loc++] = keyboard_map[(unsigned char) keycode];
+		// 		vidptr[current_loc++] = 0x07;
+        //         bufferIndex++;
+		
+		// }			
+		
+		// if (keycode != 0 && keycode != ENTER_KEY_CODE && keycode != BACKSPACE_KEY_CODE){
+		// vidptr[current_loc++] = keyboard_map[(unsigned char) keycode];
+		// vidptr[current_loc++] = 0x07;
+		
+		// bufferIndex++;
+		// }
+		
+		if(bufferIndex=0){
+		ERROR(EMPTY_STRING);
+		kprint_newline();
+	}
+   
+}		
+	 
+
+
 void keyboard_handler_main(void)
 {
 	unsigned char status;
 	char keycode;
+	
 
 	/* write EOI */
 	write_port(0x20, 0x20);
@@ -140,24 +209,68 @@ void keyboard_handler_main(void)
 
 		if(keycode == ENTER_KEY_CODE) {
 			kprint_newline();
+			printString(REQUEST);
+			kprint_newline();
+			check_write();
 			return;
 		}
-
+		if(keycode == BACKSPACE_KEY_CODE){
+			kprint_back();
+			return;
+		}
+		
 		vidptr[current_loc++] = keyboard_map[(unsigned char) keycode];
 		vidptr[current_loc++] = 0x07;
+		
+		
+		
+		
 	}
 }
 
+
+
+
+
+
+
 void kmain(void)
 {
-	const char *str = "my first kernel with keyboard support";
+	char *str = "Hello it's my first OS";
 	clear_screen();
 	kprint(str);
 	kprint_newline();
-	kprint_newline();
+	// kprint_newline();
 
 	idt_init();
 	kb_init();
+	//char *str1 = "Write your command, brooooo";
+	
+	// char userInput[50];
+	// printString("Write your request:");
+	// kprint_newline();
+	// getString(userInput, sizeof(userInput));
+	// char length=0;
+	//  while (userInput[length] != '\0') {
+    //     if (userInput[length] == '\n') {
+    //         userInput[length] = '\0';
+    //         break;
+    //     }
+    //     length++;
+    // }
 
+    // if (isStringEmpty(userInput)) {
+    //     printString("Введенная строка пуста.\n");
+    // } else {
+    //     printString("Введенная строка не пуста: ");
+    //     printString(userInput);
+    //     printString("\n");
+    // }
+
+    // return 0;
+
+	
 	while(1);
+	
+
 }
